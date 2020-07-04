@@ -1,30 +1,54 @@
+const fs = require("fs");
+const optional = require('optional');
 const Discord = require('discord.js');
 const bot =  new Discord.Client();
-const token = "NzI2MzAxMDkxMDM3NDQ2MTY2.XvbXwA.7oSw_fE9VKlwL85QrItwnTPyhBM";
+const token = process.env.BOT_TOKEN || optional('./config.json').BOT_TOKEN;
 
-const PREFIX = "!"
 bot.on('ready',()=>{
-	console.log('This bot is online!');
+	console.log(`Logged in as ${bot.user.tag}!`);
 })
 
-var fs = require("fs");
-var text = fs.readFileSync("./RE_list_fixed.txt").toString('utf-8');
-var textByLine = text.split("\n")
+const text = fs.readFileSync("./RE_list_fixed.txt", {encoding: 'utf-8'});
+const textByLine = text.split("\n");
 
-var data = [];
-for (i = 0; i < textByLine.length; i++) { 
-	line = textByLine[i]; 
-	split = line.split(" - ");
-	data[split[0]] = split[1];
-} 
+const data = {};
+for (let i = 0; i < textByLine.length; i++) { 
+	const line = textByLine[i]; 
+	const split = line.split(" - ");
+	if(split.length === 2) {
+		data[split[0]] = split[1].trim();
+	}
+}
 
-var n = 0
+const data_keys = Object.keys(data).join('\n');
 
-bot.on('message', msg=>{
-	if (msg.content.startsWith(PREFIX)){
-	let args = msg.content.substring(PREFIX.length).split("!");
-	msg.reply(data[args[0]]);
-	console.log(msg.content)
+const fuzzy_match = word_list => {
+	const regex = new RegExp(`${word_list.join('.*|.*')}.*`, 'mgi');
+	console.log(regex);
+	const keys = data_keys.match(regex);
+	const exact = keys.join('\n').match(new RegExp(`^${word_list.join(' ')}$`, 'mi'));
+	if(exact.length === 1 && data[exact]) {
+		return [`${exact}: ${data[exact]}`];
+	}
+	
+	const results = [];
+	for(const key of keys) {
+		if(data[key]) {
+			results.push(`${key}: ${data[key]}`);
+		}
+	}
+	return results;
+}
+
+bot.on('message', msg => {
+	console.log(msg.content);
+
+	if (msg.mentions.has(bot.user, {ignoreRoles: true, ignoreEveryone: true})) {
+		const content_words = msg.cleanContent.split(/\s+/);
+		if(content_words[0] === (`@${bot.user.username}`)) {
+			const fuzzy = fuzzy_match(content_words.filter(word => !word.startsWith('@')));
+			msg.reply(`\n${fuzzy.join('\n')}`);
+		}
 	}
 })
 
