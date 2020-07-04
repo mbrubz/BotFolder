@@ -41,11 +41,9 @@ const fuzzy_match = word_list => {
 }
 
 bot.on('message', msg => {
-	console.log(msg.content);
-
 	if (msg.mentions.has(bot.user, {ignoreRoles: true, ignoreEveryone: true})) {
-		const content_words = msg.cleanContent.split(/\s+/);
-		if(content_words[0] === (`@${bot.user.username}`)) {
+		if(msg.cleanContent.startsWith(`@${bot.user.username}`)) {
+			const content_words = msg.cleanContent.substring(`@${bot.user.username}`.length).trim().split(/\s+/);
 			const fuzzy = fuzzy_match(content_words.filter(word => !word.startsWith('@')));
 			msg.reply(`\n${fuzzy.join('\n')}`);
 		}
