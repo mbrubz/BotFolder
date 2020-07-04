@@ -24,7 +24,6 @@ const data_keys = Object.keys(data).join('\n');
 
 const fuzzy_match = word_list => {
 	const regex = new RegExp(`${word_list.join('.*|.*')}.*`, 'mgi');
-	console.log(regex);
 	const keys = data_keys.match(regex);
 	const exact = keys.join('\n').match(new RegExp(`^${word_list.join(' ')}$`, 'mi'));
 	if(exact.length === 1 && data[exact]) {
@@ -41,9 +40,10 @@ const fuzzy_match = word_list => {
 }
 
 bot.on('message', msg => {
+	const bot_mention_id = `<@!${bot.user.id}>`;
 	if (msg.mentions.has(bot.user, {ignoreRoles: true, ignoreEveryone: true})) {
-		if(msg.cleanContent.startsWith(`@${bot.user.username}`)) {
-			const content_words = msg.cleanContent.substring(`@${bot.user.username}`.length).trim().split(/\s+/);
+		if(msg.content.startsWith(bot_mention_id)) {
+			const content_words = msg.content.substring(bot_mention_id.length).trim().split(/\s+/);
 			const fuzzy = fuzzy_match(content_words.filter(word => !word.startsWith('@')));
 			msg.reply(`\n${fuzzy.join('\n')}`);
 		}
